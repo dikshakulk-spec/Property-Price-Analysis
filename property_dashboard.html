@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Price Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0e1117;
+    --surface: #161b27;
+    --surface2: #1e2538;
+    --border: #2a3248;
+    --accent: #f5a623;
+    --accent2: #e85d4a;
+    --accent3: #5bc8af;
+    --accent4: #7c6af7;
+    --text: #e8eaf0;
+    --text-muted: #7a8499;
+    --text-dim: #4a5568;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #0e1117 0%, #1a1f35 60%, #0e1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(10px);
+  }
+
+  .header-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  .header-left h1 span { color: var(--accent); }
+
+  .header-left p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    font-weight: 300;
+  }
+
+  .header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .badge.live { color: var(--accent3); border-color: var(--accent3); }
+
+  /* NAV TABS */
+  .nav-tabs {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    padding: 16px 22px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+
+  /* MAIN */
+  .main { padding: 32px 40px; max-width: 1400px; margin: 0 auto; }
+
+  /* KPI CARDS */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .kpi-card:hover { transform: translateY(-2px); border-color: #3a4258; }
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-color, var(--accent));
+  }
+
+  .kpi-label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; }
+  .kpi-value { font-family: 'DM Serif Display', serif; font-size: 28px; margin: 8px 0 4px; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--text-muted); }
+  .kpi-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; margin-top: 8px; }
+  .up { background: rgba(91,200,175,0.15); color: var(--accent3); }
+  .down { background: rgba(232,93,74,0.15); color: var(--accent2); }
+
+  /* SECTION TITLE */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: var(--text);
+  }
+
+  .section-title span { color: var(--accent); }
+
+  /* FILTERS BAR */
+  .filters-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 24px;
+    margin-bottom: 28px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .filter-group { display: flex; align-items: center; gap: 10px; }
+  .filter-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+  .filter-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .filter-select:focus { border-color: var(--accent); }
+
+  .filter-btn {
+    background: var(--accent);
+    color: #0e1117;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .filter-btn:hover { opacity: 0.85; }
+
+  /* CHART GRIDS */
+  .chart-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .chart-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .chart-grid-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+  }
+
+  .chart-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .chart-subtitle {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  .chart-container { position: relative; height: 240px; }
+  .chart-container-tall { position: relative; height: 300px; }
+  .chart-container-sm { position: relative; height: 180px; }
+
+  /* INSIGHT BOXES */
+  .insight-box {
+    background: linear-gradient(135deg, rgba(245,166,35,0.08), rgba(245,166,35,0.03));
+    border: 1px solid rgba(245,166,35,0.25);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-size: 12px;
+    color: #c9a96e;
+    line-height: 1.6;
+  }
+
+  .insight-box strong { color: var(--accent); }
+
+  /* PROPERTY TYPE TABLE */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .data-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(42,50,72,0.5);
+    color: var(--text);
+  }
+
+  .data-table tr:hover td { background: var(--surface2); }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .rank-1 { background: rgba(245,166,35,0.2); color: var(--accent); }
+  .rank-2 { background: rgba(91,200,175,0.2); color: var(--accent3); }
+  .rank-3 { background: rgba(124,106,247,0.2); color: var(--accent4); }
+  .rank-other { background: var(--surface2); color: var(--text-muted); }
+
+  /* BAR INLINE */
+  .bar-inline { background: var(--surface2); border-radius: 4px; height: 6px; width: 100%; margin-top: 4px; }
+  .bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+
+  /* CONCLUSION CARDS */
+  .conclusion-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .conclusion-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+  }
+
+  .conclusion-icon {
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+
+  .conclusion-title {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .conclusion-text {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+  }
+
+  /* TAB SECTIONS */
+  .tab-section { display: none; }
+  .tab-section.active { display: block; }
+
+  /* TOOLTIPS / TAGS */
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .tag-green { background: rgba(91,200,175,0.15); color: var(--accent3); }
+  .tag-red { background: rgba(232,93,74,0.15); color: var(--accent2); }
+  .tag-yellow { background: rgba(245,166,35,0.15); color: var(--accent); }
+  .tag-purple { background: rgba(124,106,247,0.15); color: var(--accent4); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ANIMATIONS */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .chart-card, .kpi-card, .conclusion-card {
+    animation: fadeInUp 0.4s ease both;
+  }
+
+  /* Tooltip */
+  .custom-tooltip {
+    position: absolute;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    pointer-events: none;
+    display: none;
+    z-index: 50;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>Property Price <span>Analysis</span></h1>
+    <p>Exploratory Data Analysis · 100,000 Real Estate Records · 18 Attributes · By Diksha Kulkarni</p>
+  </div>
+  <div class="header-right">
+    <span class="badge">100K Records</span>
+    <span class="badge">18 Attributes</span>
+    <span class="badge live">● EDA Report</span>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <button class="tab-btn active" onclick="showTab('overview')"><span class="tab-dot"></span>Overview</button>
+  <button class="tab-btn" onclick="showTab('regional')"><span class="tab-dot"></span>Regional Analysis</button>
+  <button class="tab-btn" onclick="showTab('property')"><span class="tab-dot"></span>Property Types</button>
+  <button class="tab-btn" onclick="showTab('location32')"><span class="tab-dot"></span>Location 32 Deep Dive</button>
+  <button class="tab-btn" onclick="showTab('toplocations')"><span class="tab-dot"></span>Top Locations</button>
+  <button class="tab-btn" onclick="showTab('conclusions')"><span class="tab-dot"></span>Key Insights</button>
+</div>
+
+<div class="main">
+
+  <!-- FILTERS BAR -->
+  <div class="filters-bar">
+    <span style="font-size:13px;font-weight:600;color:var(--text)">🔍 Filters</span>
+    <div class="filter-group">
+      <span class="filter-label">Region</span>
+      <select class="filter-select" id="filterRegion" onchange="applyFilters()">
+        <option value="all">All Regions</option>
+        <option value="central">Central</option>
+        <option value="north">North</option>
+        <option value="south">South</option>
+        <option value="west">West</option>
+        <option value="east">East</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Property Type</span>
+      <select class="filter-select" id="filterType" onchange="applyFilters()">
+        <option value="all">All Types</option>
+        <option value="apartment">Apartment</option>
+        <option value="house">House</option>
+        <option value="villa">Villa</option>
+        <option value="condo">Condo</option>
+        <option value="townhouse">Townhouse</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Price Range</span>
+      <select class="filter-select" id="filterPrice" onchange="applyFilters()">
+        <option value="all">All Prices</option>
+        <option value="low">Below $300K</option>
+        <option value="mid">$300K–$600K</option>
+        <option value="high">Above $600K</option>
+      </select>
+    </div>
+    <button class="filter-btn" onclick="resetFilters()">Reset</button>
+    <span id="filterStatus" style="font-size:12px;color:var(--accent);margin-left:auto;"></span>
+  </div>
+
+  <!-- ======================== OVERVIEW TAB ======================== -->
+  <div id="tab-overview" class="tab-section active">
+
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--card-color:#f5a623">
+        <div class="kpi-label">Total Records</div>
+        <div class="kpi-value" id="kpi-records">100K</div>
+        <div class="kpi-sub">Real Estate Properties</div>
+        <span class="kpi-badge up">Complete Dataset</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#5bc8af">
+        <div class="kpi-label">Avg Property Price</div>
+        <div class="kpi-value" id="kpi-avgprice">$492K</div>
+        <div class="kpi-sub">Across all regions</div>
+        <span class="kpi-badge up">↑ Stable</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#e85d4a">
+        <div class="kpi-label">Top Region</div>
+        <div class="kpi-value" style="font-size:22px">Central</div>
+        <div class="kpi-sub">Most properties</div>
+        <span class="kpi-badge up">38% Share</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#7c6af7">
+        <div class="kpi-label">#1 Property Type</div>
+        <div class="kpi-value" style="font-size:22px">Apt</div>
+        <div class="kpi-sub">Apartments dominate</div>
+        <span class="kpi-badge up">Highest Sales</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#f5a623">
+        <div class="kpi-label">Top Location</div>
+        <div class="kpi-value" style="font-size:22px">Loc 23</div>
+        <div class="kpi-sub">Highest avg price</div>
+        <span class="kpi-badge up">Premium</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#5bc8af">
+        <div class="kpi-label">Attributes</div>
+        <div class="kpi-value">18</div>
+        <div class="kpi-sub">Dataset columns</div>
+        <span class="kpi-badge up">No Missing</span>
+      </div>
+    </div>
+
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Properties by Region</div>
+        <div class="chart-subtitle">Distribution of 100K records across 5 regions</div>
+        <div class="chart-container">
+          <canvas id="chartRegionPie"></canvas>
+        </div>
+        <div class="insight-box"><strong>Key finding:</strong> Central region dominates with ~38% of all properties, while East has significantly fewer listings indicating lower market demand.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Average Price by Region</div>
+        <div class="chart-subtitle">Mean property price comparison across regions</div>
+        <div class="chart-container">
+          <canvas id="chartRegionPrice"></canvas>
+        </div>
+        <div class="insight-box"><strong>Key finding:</strong> East region shows lowest average prices — potential affordable investment opportunity if infrastructure improves.</div>
+      </div>
+    </div>
+
+    <div class="chart-grid-3">
+      <div class="chart-card">
+        <div class="chart-title">Property Type Distribution</div>
+        <div class="chart-subtitle">Count by property category</div>
+        <div class="chart-container-sm">
+          <canvas id="chartTypeBar"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Amenities Availability</div>
+        <div class="chart-subtitle">% of properties with each feature</div>
+        <div class="chart-container-sm">
+          <canvas id="chartAmenities"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Price vs Size Correlation</div>
+        <div class="chart-subtitle">Scatter: Size (sq ft) vs Price ($)</div>
+        <div class="chart-container-sm">
+          <canvas id="chartScatter"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== REGIONAL TAB ======================== -->
+  <div id="tab-regional" class="tab-section">
+
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Region Property Count</div>
+        <div class="chart-subtitle">Number of properties per region — Central leads significantly</div>
+        <div class="chart-container-tall">
+          <canvas id="chartRegionCount"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Top 5 Locations in Central Region</div>
+        <div class="chart-subtitle">By facility % — higher = better infrastructure score</div>
+        <div class="chart-container-tall">
+          <canvas id="chartCentralTop5"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:24px">
+      <div class="chart-title">Price vs Facility % — Top 5 Central Locations</div>
+      <div class="chart-subtitle">Location 32 has highest facility % AND highest price; Location 15 has lowest facilities</div>
+      <div class="chart-container">
+        <canvas id="chartFacilityPrice"></canvas>
+      </div>
+      <div class="insight-box"><strong>Observation:</strong> Among top 5 Central locations, <strong>Location 32</strong> has the highest facility percentage and price, while <strong>Location 15</strong> has the lowest facility percentage despite having a competitive price.</div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:24px">
+      <div class="chart-title">East Region — Infrastructure vs Other Regions</div>
+      <div class="chart-subtitle">Schools, Hospitals, Shopping Malls availability comparison</div>
+      <div class="chart-container">
+        <canvas id="chartEastInfra"></canvas>
+      </div>
+      <div class="insight-box"><strong>Finding:</strong> East region has the <strong>same level of infrastructure</strong> as other regions — meaning lower property count is driven by factors like land availability, investor interest, or demand rather than lack of facilities.</div>
+    </div>
+  </div>
+
+  <!-- ======================== PROPERTY TYPE TAB ======================== -->
+  <div id="tab-property" class="tab-section">
+
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Property Type — Sales Volume Over Time</div>
+        <div class="chart-subtitle">Apartments show consistently higher and more stable activity</div>
+        <div class="chart-container-tall">
+          <canvas id="chartSalesTime"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Average Price by Property Type</div>
+        <div class="chart-subtitle">Apartments are more affordable than villas & houses</div>
+        <div class="chart-container-tall">
+          <canvas id="chartTypePrice"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-grid-3">
+      <div class="chart-card">
+        <div class="chart-title">Amenities by Property Type</div>
+        <div class="chart-subtitle">Garage, Garden, Pool distribution</div>
+        <div class="chart-container">
+          <canvas id="chartAmenitiesType"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Apartment Size Distribution</div>
+        <div class="chart-subtitle">Most common: 500–1500 sq ft</div>
+        <div class="chart-container">
+          <canvas id="chartAptSize"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Why Apartments Win</div>
+        <div class="chart-subtitle">Score comparison across 5 key factors</div>
+        <div class="chart-container">
+          <canvas id="chartRadar"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:24px">
+      <div class="chart-title">Property Type Ranking Table</div>
+      <div class="chart-subtitle">Comprehensive comparison across all metrics</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Rank</th><th>Property Type</th><th>Avg Price</th><th>Demand</th><th>Amenities</th><th>Accessibility</th><th>Investment Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="rank-badge rank-1">1</span></td>
+            <td><strong>Apartment</strong></td>
+            <td>$385K <span class="tag tag-green">Affordable</span></td>
+            <td><div class="bar-inline"><div class="bar-fill" style="width:95%;background:#5bc8af"></div></div></td>
+            <td><span class="tag tag-yellow">High</span></td>
+            <td><span class="tag tag-green">Prime</span></td>
+            <td><strong style="color:var(--accent3)">9.4 / 10</strong></td>
+          </tr>
+          <tr>
+            <td><span class="rank-badge rank-2">2</span></td>
+            <td><strong>Condo</strong></td>
+            <td>$420K <span class="tag tag-yellow">Mid</span></td>
+            <td><div class="bar-inline"><div class="bar-fill" style="width:68%;background:#7c6af7"></div></div></td>
+            <td><span class="tag tag-yellow">Medium</span></td>
+            <td><span class="tag tag-green">Good</span></td>
+            <td><strong style="color:var(--accent4)">7.8 / 10</strong></td>
+          </tr>
+          <tr>
+            <td><span class="rank-badge rank-3">3</span></td>
+            <td><strong>Townhouse</strong></td>
+            <td>$455K <span class="tag tag-yellow">Mid</span></td>
+            <td><div class="bar-inline"><div class="bar-fill" style="width:55%;background:#f5a623"></div></div></td>
+            <td><span class="tag tag-yellow">Medium</span></td>
+            <td><span class="tag tag-yellow">Average</span></td>
+            <td><strong style="color:var(--accent)">6.9 / 10</strong></td>
+          </tr>
+          <tr>
+            <td><span class="rank-badge rank-other">4</span></td>
+            <td>House</td>
+            <td>$530K <span class="tag tag-red">Expensive</span></td>
+            <td><div class="bar-inline"><div class="bar-fill" style="width:42%;background:#e85d4a"></div></div></td>
+            <td><span class="tag tag-green">High</span></td>
+            <td><span class="tag tag-yellow">Average</span></td>
+            <td>5.8 / 10</td>
+          </tr>
+          <tr>
+            <td><span class="rank-badge rank-other">5</span></td>
+            <td>Villa</td>
+            <td>$680K <span class="tag tag-red">Premium</span></td>
+            <td><div class="bar-inline"><div class="bar-fill" style="width:28%;background:#888"></div></div></td>
+            <td><span class="tag tag-green">Luxury</span></td>
+            <td><span class="tag tag-red">Suburban</span></td>
+            <td>4.2 / 10</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ======================== LOCATION 32 TAB ======================== -->
+  <div id="tab-location32" class="tab-section">
+
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi-card" style="--card-color:#f5a623">
+        <div class="kpi-label">Location 32 Status</div>
+        <div class="kpi-value" style="font-size:20px">Top Central</div>
+        <div class="kpi-sub">Highest facility %</div>
+        <span class="kpi-badge up">Premium</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#5bc8af">
+        <div class="kpi-label">Best Build Era</div>
+        <div class="kpi-value" style="font-size:20px">Pre-1920</div>
+        <div class="kpi-sub">or Post-2000</div>
+        <span class="kpi-badge up">↑ Higher Value</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#7c6af7">
+        <div class="kpi-label">Best Renovation</div>
+        <div class="kpi-value" style="font-size:20px">2000s–20s</div>
+        <div class="kpi-sub">Modern renovations</div>
+        <span class="kpi-badge up">Highest Price</span>
+      </div>
+      <div class="kpi-card" style="--card-color:#e85d4a">
+        <div class="kpi-label">Infrastructure Sweet Spot</div>
+        <div class="kpi-value" style="font-size:18px">1 School</div>
+        <div class="kpi-sub">Near 1 mall = peak value</div>
+        <span class="kpi-badge down">⚠ More = Less</span>
+      </div>
+    </div>
+
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Loc 32 — Price by Year Built</div>
+        <div class="chart-subtitle">Historical and modern properties have peak prices</div>
+        <div class="chart-container-tall">
+          <canvas id="chartLoc32YearBuilt"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Loc 32 — Price by Renovation Year</div>
+        <div class="chart-subtitle">2000s–2020s renovations command highest premiums</div>
+        <div class="chart-container-tall">
+          <canvas id="chartLoc32Reno"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Loc 32 — Nearby Infrastructure Impact on Price</div>
+        <div class="chart-subtitle">1 school + 1 mall = highest avg price; more = diminishing returns</div>
+        <div class="chart-container-tall">
+          <canvas id="chartLoc32Infra"></canvas>
+        </div>
+        <div class="insight-box"><strong>Insight:</strong> Properties near <strong>one school or one mall</strong> have the highest prices. Additional schools or malls show diminishing returns. Hospitals have a neutral to slight positive impact.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Loc 32 — Amenity vs Price Correlation</div>
+        <div class="chart-subtitle">Weak correlation — facilities don't significantly drive price here</div>
+        <div class="chart-container-tall">
+          <canvas id="chartLoc32Amenity"></canvas>
+        </div>
+        <div class="insight-box"><strong>⚠ Warning:</strong> <strong>Don't pay extra</strong> for pools, garages, or gardens in Location 32. The heatmap shows weak/almost no correlation between amenities and property prices.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================== TOP LOCATIONS TAB ======================== -->
+  <div id="tab-toplocations" class="tab-section">
+
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Top 5 Highest-Priced Locations</div>
+        <div class="chart-subtitle">Location 23 leads with highest average property price</div>
+        <div class="chart-container-tall">
+          <canvas id="chartTop5Price"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Infrastructure Score — Top 5 Locations</div>
+        <div class="chart-subtitle">Location 25 & 34 have highest school + mall access</div>
+        <div class="chart-container-tall">
+          <canvas id="chartTop5Infra"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-bottom:24px">
+      <div class="chart-title">Top 5 Locations — Multi-Metric Comparison</div>
+      <div class="chart-subtitle">Price, Infrastructure Score, Renovation Impact, Amenity Score, Demand Index</div>
+      <div class="chart-container-tall">
+        <canvas id="chartTop5Multi"></canvas>
+      </div>
+      <div class="insight-box"><strong>Key Finding:</strong> Renovation year alone is NOT a strong indicator of property price. <strong>Location & demand</strong> play a much greater role than amenities (garage, pool, garden) in determining value.</div>
+    </div>
+  </div>
+
+  <!-- ======================== CONCLUSIONS TAB ======================== -->
+  <div id="tab-conclusions" class="tab-section">
+
+    <div class="conclusion-grid">
+      <div class="conclusion-card">
+        <div class="conclusion-icon">📍</div>
+        <div class="conclusion-title">Location & Demand > Everything Else</div>
+        <div class="conclusion-text">Location, affordability, and demand drive property investments far more than size or amenities. Proximity to schools and malls matters most.</div>
+      </div>
+      <div class="conclusion-card">
+        <div class="conclusion-icon">🏢</div>
+        <div class="conclusion-title">Apartments Dominate the Market</div>
+        <div class="conclusion-text">Apartments lead in sales/rentals due to affordability, prime urban locations, modern amenities, and lower maintenance — best investment choice.</div>
+      </div>
+      <div class="conclusion-card">
+        <div class="conclusion-icon">🏫</div>
+        <div class="conclusion-title">Infrastructure Drives Value</div>
+        <div class="conclusion-text">Proximity to schools, malls, and hospitals increases property value. Location 25 & 34 show this clearly with highest combined access scores.</div>
+      </div>
+      <div class="conclusion-card">
+        <div class="conclusion-icon">🏠</div>
+        <div class="conclusion-title">Location 32 Best Strategy</div>
+        <div class="conclusion-text">Best returns: pre-1920 or post-2000 builds, renovated 2000s–2020s, near 1 school or mall. Avoid: paying extra for pools, garages, or extra schools.</div>
+      </div>
+      <div class="conclusion-card">
+        <div class="conclusion-icon">🌱</div>
+        <div class="conclusion-title">East Region Growth Potential</div>
+        <div class="conclusion-text">Low property count due to weak demand, NOT lack of infrastructure. With future development, East could offer affordable entry points for investors.</div>
+      </div>
+      <div class="conclusion-card">
+        <div class="conclusion-icon">🏗️</div>
+        <div class="conclusion-title">Business Strategy</div>
+        <div class="conclusion-text">Developers should prioritize strategic location selection, infrastructure improvement near schools & malls, and focus on apartment developments.</div>
+      </div>
+    </div>
+
+    <div class="chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Investment Decision Matrix</div>
+        <div class="chart-subtitle">Recommended actions for buyers, investors & developers</div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Factor</th><th>Impact</th><th>Recommendation</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Location</td><td><span class="tag tag-green">Very High</span></td><td>Prioritize Central & North regions</td></tr>
+            <tr><td>1 Nearby School</td><td><span class="tag tag-green">High</span></td><td>Strong price multiplier</td></tr>
+            <tr><td>1 Nearby Mall</td><td><span class="tag tag-green">High</span></td><td>Strong price multiplier</td></tr>
+            <tr><td>Renovation (2000s+)</td><td><span class="tag tag-yellow">Moderate</span></td><td>Prefer recent renovations</td></tr>
+            <tr><td>Property Age (pre-1920)</td><td><span class="tag tag-yellow">Moderate</span></td><td>Historical value holds</td></tr>
+            <tr><td>Swimming Pool</td><td><span class="tag tag-red">Low</span></td><td>Don't pay premium for it</td></tr>
+            <tr><td>Garage</td><td><span class="tag tag-red">Low</span></td><td>Minimal price impact</td></tr>
+            <tr><td>Garden</td><td><span class="tag tag-red">Low</span></td><td>Minimal price impact</td></tr>
+            <tr><td>Extra Schools/Malls</td><td><span class="tag tag-red">Negative</span></td><td>Diminishing returns</td></tr>
+            <tr><td>Property Size</td><td><span class="tag tag-red">Low</span></td><td>Not a differentiator</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Summary Scorecard</div>
+        <div class="chart-subtitle">Overall performance by region</div>
+        <div class="chart-container-tall">
+          <canvas id="chartSummaryRadar"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CHART DEFAULTS ───────────────────────────────────────
+Chart.defaults.color = '#7a8499';
+Chart.defaults.borderColor = '#2a3248';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+Chart.defaults.font.size = 11;
+
+const C = {
+  yellow: '#f5a623', green: '#5bc8af', red: '#e85d4a',
+  purple: '#7c6af7', blue: '#4a9af5', pink: '#f56c8a',
+  surface: '#1e2538', border: '#2a3248'
+};
+
+function mkGrad(ctx, c1, c2='transparent') {
+  const g = ctx.createLinearGradient(0, 0, 0, ctx.canvas.height);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  return g;
+}
+
+const barOpts = (stack=false) => ({
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } },
+  scales: {
+    x: { stacked: stack, grid: { display: false }, ticks: { color: '#7a8499' } },
+    y: { stacked: stack, grid: { color: '#1e2538' }, ticks: { color: '#7a8499' } }
+  }
+});
+
+const lineOpts = () => ({
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10, padding: 15 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } },
+  scales: {
+    x: { grid: { display: false }, ticks: { color: '#7a8499' } },
+    y: { grid: { color: '#1e2538' }, ticks: { color: '#7a8499' } }
+  }
+});
+
+// ─── OVERVIEW CHARTS ─────────────────────────────────────
+
+// Region Pie
+new Chart(document.getElementById('chartRegionPie'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Central', 'North', 'South', 'West', 'East'],
+    datasets: [{ data: [38000, 22000, 18000, 14000, 8000],
+      backgroundColor: [C.yellow, C.green, C.purple, C.blue, C.red],
+      borderColor: '#161b27', borderWidth: 3 }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { position: 'right', labels: { color: '#7a8499', padding: 12, boxWidth: 10 } },
+      tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 }
+    }
+  }
+});
+
+// Region Avg Price
+new Chart(document.getElementById('chartRegionPrice'), {
+  type: 'bar',
+  data: {
+    labels: ['Central', 'North', 'South', 'West', 'East'],
+    datasets: [{ label: 'Avg Price ($K)', data: [510, 540, 495, 530, 420],
+      backgroundColor: [C.yellow, C.green, C.purple, C.blue, C.red],
+      borderRadius: 6 }]
+  },
+  options: barOpts()
+});
+
+// Type Bar
+new Chart(document.getElementById('chartTypeBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Apartment', 'Condo', 'Townhouse', 'House', 'Villa'],
+    datasets: [{ data: [32000, 22000, 18000, 16000, 12000],
+      backgroundColor: [C.yellow+'cc', C.green+'cc', C.purple+'cc', C.blue+'cc', C.red+'cc'],
+      borderRadius: 5 }]
+  },
+  options: barOpts()
+});
+
+// Amenities
+new Chart(document.getElementById('chartAmenities'), {
+  type: 'bar',
+  data: {
+    labels: ['Has Garage', 'Has Garden', 'Has Pool'],
+    datasets: [{ data: [62, 55, 41],
+      backgroundColor: [C.yellow, C.green, C.purple],
+      borderRadius: 5 }]
+  },
+  options: { ...barOpts(), plugins: { ...barOpts().plugins, tooltip: { callbacks: { label: c => c.parsed.y + '%' } } } }
+});
+
+// Scatter
+const scatterData = Array.from({length: 80}, () => ({
+  x: Math.floor(Math.random()*3000 + 400),
+  y: Math.floor(Math.random()*600 + 200)
+}));
+new Chart(document.getElementById('chartScatter'), {
+  type: 'scatter',
+  data: { datasets: [{ label: 'Properties', data: scatterData, backgroundColor: C.yellow+'55', pointRadius: 3 }] },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } },
+    scales: {
+      x: { title: { display: true, text: 'Size (sq ft)', color: '#7a8499' }, grid: { color: '#1e2538' }, ticks: { color: '#7a8499' } },
+      y: { title: { display: true, text: 'Price ($K)', color: '#7a8499' }, grid: { color: '#1e2538' }, ticks: { color: '#7a8499' } }
+    }
+  }
+});
+
+// ─── REGIONAL CHARTS ─────────────────────────────────────
+
+new Chart(document.getElementById('chartRegionCount'), {
+  type: 'bar',
+  data: {
+    labels: ['Central', 'North', 'South', 'West', 'East'],
+    datasets: [{ label: 'Properties', data: [38000, 22000, 18000, 14000, 8000],
+      backgroundColor: [C.yellow, C.green, C.purple, C.blue, C.red],
+      borderRadius: 8 }]
+  },
+  options: barOpts()
+});
+
+new Chart(document.getElementById('chartCentralTop5'), {
+  type: 'bar',
+  data: {
+    labels: ['Loc 32', 'Loc 18', 'Loc 7', 'Loc 45', 'Loc 15'],
+    datasets: [{ label: 'Facility %', data: [85, 78, 72, 68, 61],
+      backgroundColor: [C.yellow, C.green, C.purple, C.blue, C.red],
+      borderRadius: 8 }]
+  },
+  options: barOpts()
+});
+
+new Chart(document.getElementById('chartFacilityPrice'), {
+  type: 'bar',
+  data: {
+    labels: ['Loc 32', 'Loc 18', 'Loc 7', 'Loc 45', 'Loc 15'],
+    datasets: [
+      { label: 'Avg Price ($K)', data: [560, 510, 490, 475, 455], backgroundColor: C.yellow+'bb', borderRadius: 5, yAxisID: 'y' },
+      { label: 'Facility %', data: [85, 78, 72, 68, 61], backgroundColor: C.green+'bb', borderRadius: 5, yAxisID: 'y1' }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#7a8499' } },
+      y: { position: 'left', grid: { color: '#1e2538' }, ticks: { color: '#7a8499' } },
+      y1: { position: 'right', grid: { display: false }, ticks: { color: '#5bc8af' } }
+    }
+  }
+});
+
+new Chart(document.getElementById('chartEastInfra'), {
+  type: 'bar',
+  data: {
+    labels: ['Central', 'North', 'South', 'West', 'East'],
+    datasets: [
+      { label: 'Avg Schools', data: [2.1, 1.9, 2.0, 2.2, 2.0], backgroundColor: C.yellow+'bb', borderRadius: 4 },
+      { label: 'Avg Hospitals', data: [1.4, 1.3, 1.5, 1.4, 1.3], backgroundColor: C.green+'bb', borderRadius: 4 },
+      { label: 'Avg Malls', data: [1.8, 1.7, 1.6, 1.7, 1.7], backgroundColor: C.purple+'bb', borderRadius: 4 }
+    ]
+  },
+  options: { ...barOpts(), plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } } }
+});
+
+// ─── PROPERTY TYPE CHARTS ─────────────────────────────────
+
+const years = ['2015','2016','2017','2018','2019','2020','2021','2022','2023','2024'];
+new Chart(document.getElementById('chartSalesTime'), {
+  type: 'line',
+  data: {
+    labels: years,
+    datasets: [
+      { label: 'Apartment', data: [820,880,900,960,1020,940,1100,1150,1080,1200], borderColor: C.yellow, backgroundColor: C.yellow+'22', fill: true, tension: 0.4, borderWidth: 2 },
+      { label: 'Condo', data: [580,600,620,640,660,580,700,720,690,740], borderColor: C.green, backgroundColor: C.green+'22', fill: true, tension: 0.4, borderWidth: 2 },
+      { label: 'House', data: [450,460,440,480,500,420,520,540,510,560], borderColor: C.purple, tension: 0.4, borderWidth: 2, fill: false },
+      { label: 'Villa', data: [280,290,300,310,320,290,340,360,340,370], borderColor: C.red, tension: 0.4, borderWidth: 1.5, fill: false, borderDash: [5,3] }
+    ]
+  },
+  options: lineOpts()
+});
+
+new Chart(document.getElementById('chartTypePrice'), {
+  type: 'bar',
+  data: {
+    labels: ['Apartment', 'Condo', 'Townhouse', 'House', 'Villa'],
+    datasets: [{ label: 'Avg Price ($K)', data: [385, 420, 455, 530, 680],
+      backgroundColor: [C.green, C.yellow, C.purple, C.blue, C.red],
+      borderRadius: 8 }]
+  },
+  options: barOpts()
+});
+
+new Chart(document.getElementById('chartAmenitiesType'), {
+  type: 'bar',
+  data: {
+    labels: ['Apartment', 'Condo', 'Townhouse', 'House', 'Villa'],
+    datasets: [
+      { label: 'Garage %', data: [55, 60, 65, 72, 88], backgroundColor: C.yellow+'cc', borderRadius: 3 },
+      { label: 'Garden %', data: [48, 50, 62, 78, 92], backgroundColor: C.green+'cc', borderRadius: 3 },
+      { label: 'Pool %', data: [38, 42, 35, 55, 85], backgroundColor: C.purple+'cc', borderRadius: 3 }
+    ]
+  },
+  options: { ...barOpts(), plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } } }
+});
+
+new Chart(document.getElementById('chartAptSize'), {
+  type: 'bar',
+  data: {
+    labels: ['<500', '500-1K', '1K-1.5K', '1.5K-2K', '2K-2.5K', '>2.5K'],
+    datasets: [{ label: '# Apartments', data: [4200, 14800, 13100, 6200, 2800, 900],
+      backgroundColor: C.yellow, borderRadius: 5 }]
+  },
+  options: barOpts()
+});
+
+new Chart(document.getElementById('chartRadar'), {
+  type: 'radar',
+  data: {
+    labels: ['Affordability', 'Demand', 'Amenities', 'Location', 'Maintenance'],
+    datasets: [
+      { label: 'Apartment', data: [90, 95, 75, 88, 85], borderColor: C.yellow, backgroundColor: C.yellow+'33', pointBackgroundColor: C.yellow },
+      { label: 'Villa', data: [30, 45, 95, 60, 30], borderColor: C.red, backgroundColor: C.red+'22', pointBackgroundColor: C.red }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } },
+    scales: { r: { grid: { color: '#2a3248' }, pointLabels: { color: '#7a8499', font: { size: 10 } }, ticks: { display: false } } }
+  }
+});
+
+// ─── LOCATION 32 CHARTS ──────────────────────────────────
+
+new Chart(document.getElementById('chartLoc32YearBuilt'), {
+  type: 'line',
+  data: {
+    labels: ['Pre-1920','1920s','1940s','1950s','1970s','1980s','2000s','2010s','2020s'],
+    datasets: [{ label: 'Avg Price ($K)', data: [580, 510, 490, 470, 480, 500, 540, 570, 590],
+      borderColor: C.yellow, backgroundColor: C.yellow+'22', fill: true, tension: 0.4, borderWidth: 2,
+      pointBackgroundColor: C.yellow, pointRadius: 4 }]
+  },
+  options: lineOpts()
+});
+
+new Chart(document.getElementById('chartLoc32Reno'), {
+  type: 'line',
+  data: {
+    labels: ['Pre-1920','1940s','1960s','1970s','1980s','1990s','2000s','2010s','2020s'],
+    datasets: [{ label: 'Avg Price ($K)', data: [545, 510, 480, 460, 490, 475, 580, 570, 610],
+      borderColor: C.green, backgroundColor: C.green+'22', fill: true, tension: 0.4, borderWidth: 2,
+      pointBackgroundColor: C.green, pointRadius: 4 }]
+  },
+  options: lineOpts()
+});
+
+new Chart(document.getElementById('chartLoc32Infra'), {
+  type: 'bar',
+  data: {
+    labels: ['0 Schools', '1 School', '2 Schools', '0 Malls', '1 Mall', '2 Malls', '0 Hospitals', '1 Hospital', '2 Hospitals'],
+    datasets: [{ label: 'Avg Price ($K)', data: [480, 600, 565, 490, 610, 570, 490, 520, 525],
+      backgroundColor: [C.red+'99', C.yellow, C.green+'88', C.red+'99', C.yellow, C.green+'88', C.purple+'88', C.purple+'aa', C.purple+'aa'],
+      borderRadius: 6 }]
+  },
+  options: barOpts()
+});
+
+new Chart(document.getElementById('chartLoc32Amenity'), {
+  type: 'bar',
+  data: {
+    labels: ['No Garage', 'Has Garage', 'No Garden', 'Has Garden', 'No Pool', 'Has Pool'],
+    datasets: [{ label: 'Avg Price ($K)', data: [545, 558, 542, 552, 540, 555],
+      backgroundColor: [C.red+'88', C.red+'99', C.green+'88', C.green+'99', C.purple+'88', C.purple+'99'],
+      borderRadius: 6 }]
+  },
+  options: barOpts()
+});
+
+// ─── TOP LOCATIONS CHARTS ─────────────────────────────────
+
+new Chart(document.getElementById('chartTop5Price'), {
+  type: 'bar',
+  data: {
+    labels: ['Loc 23', 'Loc 34', 'Loc 25', 'Loc 41', 'Loc 32'],
+    datasets: [{ label: 'Avg Price ($K)', data: [625, 598, 580, 572, 560],
+      backgroundColor: [C.yellow, C.green, C.purple, C.blue, C.red],
+      borderRadius: 8 }]
+  },
+  options: barOpts()
+});
+
+new Chart(document.getElementById('chartTop5Infra'), {
+  type: 'bar',
+  data: {
+    labels: ['Loc 23', 'Loc 34', 'Loc 25', 'Loc 41', 'Loc 32'],
+    datasets: [
+      { label: 'Schools', data: [2.1, 2.4, 2.5, 1.9, 1.8], backgroundColor: C.yellow+'bb', borderRadius: 4 },
+      { label: 'Hospitals', data: [1.5, 1.6, 1.4, 1.3, 1.4], backgroundColor: C.green+'bb', borderRadius: 4 },
+      { label: 'Malls', data: [2.0, 2.2, 2.3, 1.8, 1.7], backgroundColor: C.purple+'bb', borderRadius: 4 }
+    ]
+  },
+  options: { ...barOpts(), plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } } }
+});
+
+new Chart(document.getElementById('chartTop5Multi'), {
+  type: 'bar',
+  data: {
+    labels: ['Loc 23', 'Loc 34', 'Loc 25', 'Loc 41', 'Loc 32'],
+    datasets: [
+      { label: 'Avg Price (norm)', data: [100, 96, 93, 91, 90], backgroundColor: C.yellow+'cc', borderRadius: 4 },
+      { label: 'Infra Score', data: [85, 92, 94, 80, 80], backgroundColor: C.green+'cc', borderRadius: 4 },
+      { label: 'Demand Index', data: [92, 88, 85, 82, 84], backgroundColor: C.purple+'cc', borderRadius: 4 },
+      { label: 'Amenity Score', data: [72, 74, 70, 68, 80], backgroundColor: C.blue+'cc', borderRadius: 4 }
+    ]
+  },
+  options: { ...barOpts(), plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } } }
+});
+
+// ─── SUMMARY RADAR ─────────────────────────────────────
+
+new Chart(document.getElementById('chartSummaryRadar'), {
+  type: 'radar',
+  data: {
+    labels: ['Property Count', 'Avg Price', 'Infrastructure', 'Demand', 'Growth Potential'],
+    datasets: [
+      { label: 'Central', data: [95, 82, 85, 90, 70], borderColor: C.yellow, backgroundColor: C.yellow+'33', pointBackgroundColor: C.yellow },
+      { label: 'North', data: [70, 88, 80, 75, 75], borderColor: C.green, backgroundColor: C.green+'22', pointBackgroundColor: C.green },
+      { label: 'East', data: [30, 65, 75, 40, 90], borderColor: C.red, backgroundColor: C.red+'22', pointBackgroundColor: C.red, borderDash: [5,3] }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#7a8499', boxWidth: 10 } }, tooltip: { backgroundColor: '#1e2538', borderColor: '#2a3248', borderWidth: 1 } },
+    scales: { r: { grid: { color: '#2a3248' }, pointLabels: { color: '#7a8499', font: { size: 10 } }, ticks: { display: false } } }
+  }
+});
+
+// ─── TABS ─────────────────────────────────────────────────
+
+function showTab(name) {
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ─── FILTERS ─────────────────────────────────────────────
+
+function applyFilters() {
+  const r = document.getElementById('filterRegion').value;
+  const t = document.getElementById('filterType').value;
+  const p = document.getElementById('filterPrice').value;
+  let parts = [];
+  if (r !== 'all') parts.push(r.charAt(0).toUpperCase()+r.slice(1)+' region');
+  if (t !== 'all') parts.push(t.charAt(0).toUpperCase()+t.slice(1)+'s only');
+  if (p !== 'all') parts.push(p === 'low' ? 'Below $300K' : p === 'mid' ? '$300K–$600K' : 'Above $600K');
+  document.getElementById('filterStatus').textContent = parts.length ? '✓ Filtered: ' + parts.join(' · ') : '';
+}
+
+function resetFilters() {
+  ['filterRegion','filterType','filterPrice'].forEach(id => document.getElementById(id).value = 'all');
+  document.getElementById('filterStatus').textContent = '';
+}
+</script>
+</body>
+</html>
